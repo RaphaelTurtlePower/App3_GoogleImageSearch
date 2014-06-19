@@ -87,10 +87,14 @@ public class ImageDisplayActivity extends Activity {
 		Drawable mDrawable = siv.getDrawable();
 		if(mDrawable != null){
 			Bitmap mBitmap = ((BitmapDrawable)mDrawable).getBitmap();
+			if(mBitmap != null){
 			String path = Images.Media.insertImage(getContentResolver(), 
 			    mBitmap, "Image Description", null);
 			Uri uri = Uri.parse(path);
 			return uri;
+			}else{
+				return null;
+			}
 		}else{
 			return null;
 		}

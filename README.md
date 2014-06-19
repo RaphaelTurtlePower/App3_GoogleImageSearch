@@ -2,7 +2,7 @@ App3_GoogleImageSearch
 ======================
 
 Google Image Search.
-![Video Walkthrough](google_image_search.gif)
+![Video Walkthrough](image_search.gif)
 
 User Stories:
 
