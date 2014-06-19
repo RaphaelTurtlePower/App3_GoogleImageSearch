@@ -12,30 +12,30 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.RelativeLayout;
-import android.widget.SearchView;
-import android.widget.SearchView.OnQueryTextListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.actionbarsherlock.app.SherlockActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
+import com.actionbarsherlock.view.MenuItem;
+import com.actionbarsherlock.widget.SearchView;
+import com.actionbarsherlock.widget.SearchView.OnQueryTextListener;
 import com.codepath.googleimagesearch.R;
 import com.codepath.googleimagesearch.model.Image;
 import com.codepath.googleimagesearch.model.Settings;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
-public class MainActivity extends Activity {
+public class MainActivity extends SherlockActivity {
 	public static int RESULT_SIZE=8;
-	EditText etQuery;
-	TextView btnSearch;
+	String activityQuery = "";
 	GridView gvResults;
 	ArrayList<Image> results = new ArrayList<Image>();
 	ImageArrayAdapter imageAdapter;
@@ -43,8 +43,6 @@ public class MainActivity extends Activity {
 	int currentPage;
 	
 	public void setupViews(){
-		etQuery = (EditText)findViewById(R.id.etQuery);
-		btnSearch = (TextView)findViewById(R.id.btnSearch);
 		gvResults = (GridView)findViewById(R.id.gvResults);
 		results = new ArrayList<Image>();
 		imageAdapter = new ImageArrayAdapter(this, results);
@@ -55,7 +53,7 @@ public class MainActivity extends Activity {
 				Intent i = new Intent(getApplicationContext(), ImageDisplayActivity.class);
 				Image img = results.get(position);
 				i.putExtra("image", img);
-				startActivity(i);
+				startActivityForResult(i, 6);
 			}
 		});
 		currentPage = 0;	//initialize page
@@ -71,41 +69,29 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		appSettings = new Settings();
 		setupViews();
-		btnSearch.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				imageSearch(v);
-			}
-		});
-		
+	
 		gvResults.setOnScrollListener(new EndlessScrollListener() {
 		    @Override
 		    	public void onLoadMore(int page, int totalItemsCount) {
-		    		currentPage += RESULT_SIZE;
-	            	String query = etQuery.getText().toString();
-	            	executeApiCall(query);
+		    		if(activityQuery.length() > 0){
+		    			currentPage += RESULT_SIZE;
+	            		executeApiCall();
+		    		}
 		    }
 	        });
 		
 	}
 	
-	public void imageSearch(View v){
-		currentPage = 0;
-		String query = etQuery.getText().toString();
-		Toast.makeText(this, "Looking for:" + query, Toast.LENGTH_LONG).show();
-		executeApiCall(query);
-	}
-	
-	public void executeApiCall(String query){
+	public void executeApiCall(){
 		AsyncHttpClient client = new AsyncHttpClient();
-		String url = "https://ajax.googleapis.com/ajax/services/search/images?rsz="+ RESULT_SIZE+ "&v=1.0&start=" + currentPage + "&q=" + Uri.encode(query) + appSettings.generateQueryString(); 
+		String url = "https://ajax.googleapis.com/ajax/services/search/images?rsz="+ RESULT_SIZE+ "&v=1.0&start=" + currentPage + "&q=" + Uri.encode(activityQuery) + appSettings.generateQueryString(); 
 		System.out.println(url);
 		Log.d("DEBUG", url);		
 		client.get(url,
 				new JsonHttpResponseHandler() {
 					@Override
 					public void onSuccess(JSONObject response){
+						Log.d("DEBUG", response.toString());
 						JSONArray imageJsonResults = null;
 						try{
 							imageJsonResults = response.getJSONObject("responseData").getJSONArray("results");
@@ -125,17 +111,18 @@ public class MainActivity extends Activity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 	    // Inflate the menu items for use in the action bar
-	    MenuInflater inflater = getMenuInflater();
+	    MenuInflater inflater = getSupportMenuInflater();
 	    inflater.inflate(R.menu.main_activity_actions, menu);
-	  
-	  /*  MenuItem searchItem = menu.findItem(R.id.asearch);
-	    SearchView searchView = (SearchView) searchItem.getActionView();
+		
+	    SearchView searchView = new SearchView(getSupportActionBar().getThemedContext());
 	    searchView.setOnQueryTextListener(new OnQueryTextListener(){
 
 			@Override
 			public boolean onQueryTextSubmit(String query) {
-				executeApiCall(query);
-				return false;
+				currentPage = 0;
+				activityQuery = query;
+				executeApiCall();
+				return true;
 			}
 
 			@Override
@@ -144,7 +131,11 @@ public class MainActivity extends Activity {
 			}
 	    	
 	    });
-	    */
+	    
+	    menu.add(0, 0, 1, "Search").setActionView(searchView)
+    	.setIcon(R.drawable.ac_action_search).setShowAsAction(
+    			MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+	    
 	    return super.onCreateOptionsMenu(menu);
 	}
 	
@@ -169,6 +160,8 @@ public class MainActivity extends Activity {
 	  protected void onActivityResult(int requestCode, int resultCode, Intent data ){
 	    	if(requestCode == 5){
 	    		appSettings = data.getParcelableExtra("settings");
+	    	}else if(requestCode == 6){
+	    		//awesome hope this works
 	    	}
 	    }
 	
